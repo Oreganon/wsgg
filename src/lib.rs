@@ -27,4 +27,11 @@ impl Connection {
         self.socket.write_message(Message::Text(msg)).unwrap();
         Ok(())
     }
+
+    pub fn read(mut self) -> Result<String, String> {
+        match self.socket.read_message() {
+            Ok(m) => Ok(m.to_string()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
 }
