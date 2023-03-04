@@ -1,5 +1,5 @@
+use serde_json::Value;
 use std::net::TcpStream;
-use serde_json::{Value};
 use tungstenite::client::IntoClientRequest;
 use tungstenite::http::HeaderValue;
 use tungstenite::stream::MaybeTlsStream;
