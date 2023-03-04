@@ -1,4 +1,5 @@
 use std::net::TcpStream;
+use serde_json::{Value};
 use tungstenite::client::IntoClientRequest;
 use tungstenite::http::HeaderValue;
 use tungstenite::stream::MaybeTlsStream;
@@ -29,10 +30,24 @@ impl Connection {
         Ok(())
     }
 
-    pub fn read(&mut self) -> Result<String, String> {
+    fn read(&mut self) -> Result<String, String> {
         match self.socket.read_message() {
             Ok(m) => Ok(m.to_string()),
             Err(e) => Err(e.to_string()),
+        }
+    }
+
+    pub fn read_msg(&mut self) -> Result<Value, String> {
+        loop {
+            let msg = self.read()?;
+            let prefix = "MSG ";
+            if msg.starts_with(prefix) {
+                let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
+                match serde_json::from_str(msg) {
+                    Ok(v) => return Ok(v),
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
         }
     }
 }
