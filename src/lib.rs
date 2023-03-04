@@ -5,6 +5,7 @@ use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{connect, Message, WebSocket};
 use url::Url;
 
+#[derive(Debug)]
 pub struct Connection {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
 }
@@ -22,13 +23,13 @@ impl Connection {
         Ok(Connection { socket })
     }
 
-    pub fn send(mut self, message: &str) -> Result<(), &'static str> {
+    pub fn send(&mut self, message: &str) -> Result<(), &'static str> {
         let msg = format!("MSG {{\"data\":\"{message}\"}}");
         self.socket.write_message(Message::Text(msg)).unwrap();
         Ok(())
     }
 
-    pub fn read(mut self) -> Result<String, String> {
+    pub fn read(&mut self) -> Result<String, String> {
         match self.socket.read_message() {
             Ok(m) => Ok(m.to_string()),
             Err(e) => Err(e.to_string()),
