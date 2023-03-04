@@ -12,8 +12,17 @@ pub struct Connection {
 }
 
 impl Connection {
+    pub fn new_dev(cookie: &str) -> Result<Connection, &'static str> {
+        let endpoint = "wss://chat2.strims.gg/ws";
+        return Connection::new_at_endpoint(endpoint, cookie);
+    }
+
     pub fn new(cookie: &str) -> Result<Connection, &'static str> {
         let endpoint = "wss://chat.strims.gg/ws";
+        return Connection::new_at_endpoint(endpoint, cookie);
+    }
+
+    pub fn new_at_endpoint(endpoint: &str, cookie: &str) -> Result<Connection, &'static str> {
         let url = Url::parse(endpoint).expect("Could not parse url");
         let mut request = url.into_client_request().expect("could not build request");
         request.headers_mut().insert(
