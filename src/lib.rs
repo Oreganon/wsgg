@@ -33,10 +33,13 @@ impl Connection {
         Ok(Connection { socket })
     }
 
-    pub fn send(&mut self, message: &str) -> Result<(), &'static str> {
+    pub fn send(&mut self, message: &str) -> Result<(), String> {
         let msg = format!("MSG {{\"data\":\"{message}\"}}");
-        self.socket.write_message(Message::Text(msg)).unwrap();
-        Ok(())
+        let res = self.socket.write_message(Message::Text(msg));
+        match res {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     fn read(&mut self) -> Result<String, String> {
