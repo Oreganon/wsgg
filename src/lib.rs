@@ -5,7 +5,7 @@ use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{connect, Message, WebSocket};
 use url::Url;
 
-struct Connection {
+pub struct Connection {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
 }
 
