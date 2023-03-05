@@ -39,6 +39,7 @@ impl Connection {
     ) -> Result<WebSocket<MaybeTlsStream<TcpStream>>, String> {
         let url = Url::parse(&endpoint).expect("Could not parse url");
         let mut request = url.into_client_request().expect("could not build request");
+        let cookie = cookie.replace("\n", "");
         request.headers_mut().insert(
             "Cookie",
             HeaderValue::from_str(&cookie).expect("Could not build cookie value"),
