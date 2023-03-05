@@ -9,28 +9,44 @@ use url::Url;
 #[derive(Debug)]
 pub struct Connection {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
+    endpoint: String,
+    cookie: String,
 }
 
 impl Connection {
-    pub fn new_dev(cookie: &str) -> Result<Connection, &'static str> {
+    pub fn new_dev(cookie: &str) -> Result<Connection, String> {
         let endpoint = "wss://chat2.strims.gg/ws";
         return Connection::new_at_endpoint(endpoint, cookie);
     }
 
-    pub fn new(cookie: &str) -> Result<Connection, &'static str> {
+    pub fn new(cookie: &str) -> Result<Connection, String> {
         let endpoint = "wss://chat.strims.gg/ws";
         return Connection::new_at_endpoint(endpoint, cookie);
     }
 
-    pub fn new_at_endpoint(endpoint: &str, cookie: &str) -> Result<Connection, &'static str> {
-        let url = Url::parse(endpoint).expect("Could not parse url");
+    fn new_at_endpoint(endpoint: &str, cookie: &str) -> Result<Connection, String> {
+        let socket = Connection::create_socket(&endpoint.to_string(), &cookie.to_string())?;
+        Ok(Connection {
+            socket,
+            endpoint: endpoint.to_string(),
+            cookie: cookie.to_string(),
+        })
+    }
+
+    fn create_socket(
+        endpoint: &String,
+        cookie: &String,
+    ) -> Result<WebSocket<MaybeTlsStream<TcpStream>>, String> {
+        let url = Url::parse(&endpoint).expect("Could not parse url");
         let mut request = url.into_client_request().expect("could not build request");
         request.headers_mut().insert(
             "Cookie",
-            HeaderValue::from_str(cookie).expect("Could not build cookie value"),
+            HeaderValue::from_str(&cookie).expect("Could not build cookie value"),
         );
-        let (socket, _) = connect(request).unwrap();
-        Ok(Connection { socket })
+        match connect(request) {
+            Ok((socket, _)) => Ok(socket),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     pub fn send(&mut self, message: &str) -> Result<(), String> {
@@ -45,7 +61,11 @@ impl Connection {
     fn read(&mut self) -> Result<String, String> {
         match self.socket.read_message() {
             Ok(m) => Ok(m.to_string()),
-            Err(e) => Err(e.to_string()),
+            Err(e) => {
+                let socket = Connection::create_socket(&self.endpoint, &self.cookie)?;
+                self.socket = socket;
+                Err(format!("Error reading: [{e}]: => reconnected"))
+            }
         }
     }
 
