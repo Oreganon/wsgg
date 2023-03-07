@@ -109,7 +109,10 @@ impl Connection {
             Ok(v) => {
                 let message = v["data"].to_string();
                 let sender = v["nick"].to_string();
-                return Ok(ChatMessage { message, sender });
+                return Ok(ChatMessage {
+                    message: clean_received(&message).to_owned(),
+                    sender: clean_received(&sender).to_owned(),
+                });
             }
             Err(e) => return Err(e.to_string()),
         }
@@ -125,9 +128,9 @@ impl Connection {
                 let sender = v["nick"].to_string();
                 let receiver = v["nickTarget"].to_string();
                 return Ok(WhisperMessage {
-                    message,
-                    sender,
-                    receiver,
+                    message: clean_received(&message).to_owned(),
+                    sender: clean_received(&sender).to_owned(),
+                    receiver: clean_received(&receiver).to_owned(),
                 });
             }
             Err(e) => return Err(e.to_string()),
@@ -136,5 +139,24 @@ impl Connection {
 
     pub fn read_any(&mut self) -> Result<String, String> {
         self.read()
+    }
+}
+
+fn clean_received(s: &String) -> &str {
+    let mut chars = s.chars();
+    chars.next();
+    chars.next_back();
+    return chars.as_str();
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::clean_received;
+
+    #[test]
+    fn test_clean_received() {
+        let before = "\"abc\"".to_string();
+        let cleaned = clean_received(&before);
+        assert_eq!(cleaned, "abc");
     }
 }
