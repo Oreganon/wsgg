@@ -13,10 +13,13 @@ pub struct Connection {
     cookie: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct ChatMessage {
     pub sender: String,
     pub message: String,
 }
+
+#[derive(Debug, Clone)]
 pub struct WhisperMessage {
     pub sender: String,
     pub receiver: String,
