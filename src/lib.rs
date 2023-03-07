@@ -52,7 +52,16 @@ impl Connection {
 
     pub fn send(&mut self, message: &str) -> Result<(), String> {
         let msg = format!("MSG {{\"data\":\"{message}\"}}");
-        let res = self.socket.write_message(Message::Text(msg));
+        self.write(msg)
+    }
+
+    pub fn whisper(&mut self, receiver: &str, message: &str) -> Result<(), String> {
+        let msg = format!("PRIVMSG {{\"nick\":\"{receiver}\",\"data\":\"{message}\"}}");
+        self.write(msg)
+    }
+
+    fn write(&mut self, text: String) -> Result<(), String> {
+        let res = self.socket.write_message(Message::Text(text));
         match res {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
