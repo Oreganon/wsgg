@@ -93,6 +93,20 @@ impl Connection {
         }
     }
 
+    pub fn read_whisper(&mut self) -> Result<Value, String> {
+        loop {
+            let msg = self.read()?;
+            let prefix = "PRIVMSG ";
+            if msg.starts_with(prefix) {
+                let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
+                match serde_json::from_str(msg) {
+                    Ok(v) => return Ok(v),
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
+        }
+    }
+
     pub fn read_any(&mut self) -> Result<String, String> {
         self.read()
     }
