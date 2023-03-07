@@ -13,6 +13,16 @@ pub struct Connection {
     cookie: String,
 }
 
+pub struct ChatMessage {
+    pub sender: String,
+    pub message: String,
+}
+pub struct WhisperMessage {
+    pub sender: String,
+    pub receiver: String,
+    pub message: String,
+}
+
 impl Connection {
     pub fn new_dev(cookie: &str) -> Result<Connection, String> {
         let endpoint = "wss://chat2.strims.gg/ws";
@@ -79,31 +89,45 @@ impl Connection {
         }
     }
 
-    pub fn read_msg(&mut self) -> Result<Value, String> {
+    fn read_until_prefix(&mut self, prefix: &str) -> Result<String, String> {
         loop {
             let msg = self.read()?;
-            let prefix = "MSG ";
             if msg.starts_with(prefix) {
                 let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
-                match serde_json::from_str(msg) {
-                    Ok(v) => return Ok(v),
-                    Err(e) => return Err(e.to_string()),
-                }
+                return Ok(msg.to_owned());
             }
         }
     }
 
-    pub fn read_whisper(&mut self) -> Result<Value, String> {
-        loop {
-            let msg = self.read()?;
-            let prefix = "PRIVMSG ";
-            if msg.starts_with(prefix) {
-                let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
-                match serde_json::from_str(msg) {
-                    Ok(v) => return Ok(v),
-                    Err(e) => return Err(e.to_string()),
-                }
+    pub fn read_msg(&mut self) -> Result<ChatMessage, String> {
+        let msg = self.read_until_prefix("MSG ")?;
+        let v: Result<Value, _> = serde_json::from_str(&msg);
+        match v {
+            Ok(v) => {
+                let message = v["data"].to_string();
+                let sender = v["nick"].to_string();
+                return Ok(ChatMessage { message, sender });
             }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+
+    pub fn read_whisper(&mut self) -> Result<WhisperMessage, String> {
+        let prefix = "PRIVMSG ";
+        let msg = self.read_until_prefix(prefix)?;
+        let v: Result<Value, _> = serde_json::from_str(&msg);
+        match v {
+            Ok(v) => {
+                let message = v["data"].to_string();
+                let sender = v["nick"].to_string();
+                let receiver = v["nickTarget"].to_string();
+                return Ok(WhisperMessage {
+                    message,
+                    sender,
+                    receiver,
+                });
+            }
+            Err(e) => return Err(e.to_string()),
         }
     }
 
