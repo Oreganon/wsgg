@@ -83,4 +83,8 @@ impl Connection {
             }
         }
     }
+
+    pub fn read_any(&mut self) -> Result<String, String> {
+        self.read()
+    }
 }
