@@ -56,9 +56,9 @@ impl Connection {
     fn verify_cookie(cookie: String) -> Result<(), String> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
-            "COOKIE",
-            header::HeaderValue::from_str(&format!("Cookie: {cookie}"))
-                .map_err(|e| e.to_string())?,
+            "Cookie",
+            header::HeaderValue::from_str(&cookie)
+                .map_err(|e| format!("{e}: [cookie=\"{cookie}\""))?,
         );
 
         let client = reqwest::blocking::Client::builder()
