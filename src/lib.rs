@@ -1,10 +1,11 @@
+use reqwest::header;
+use reqwest::Url;
 use serde_json::Value;
 use std::net::TcpStream;
 use tungstenite::client::IntoClientRequest;
 use tungstenite::http::HeaderValue;
 use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{connect, Message, WebSocket};
-use url::Url;
 
 #[derive(Debug)]
 pub struct Connection {
@@ -52,10 +53,31 @@ impl Connection {
         })
     }
 
+    fn verify_cookie(cookie: String) -> Result<(), String> {
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            "COOKIE",
+            header::HeaderValue::from_str(&cookie).map_err(|e| e.to_string())?,
+        );
+
+        let client = reqwest::blocking::Client::builder()
+            .default_headers(headers)
+            .build()
+            .map_err(|e| e.to_string())?;
+        let url = "https://chat.strims.gg/api/chat/me";
+        let res = client.get(url).send().map_err(|e| e.to_string())?;
+        if !res.status().is_success() {
+            let msg = format!("Could not log in with cookie. The cookie must have the format as specified in the cookie.template file. [cookie=\"{cookie}\"]");
+            return Err(msg);
+        }
+        Ok(())
+    }
+
     fn create_socket(
         endpoint: &String,
         cookie: &String,
     ) -> Result<WebSocket<MaybeTlsStream<TcpStream>>, String> {
+        Connection::verify_cookie(cookie.to_string())?;
         let url = Url::parse(&endpoint).expect("Could not parse url");
         let mut request = url.into_client_request().expect("could not build request");
         let cookie = cookie.replace("\n", "");
