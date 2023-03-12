@@ -55,6 +55,7 @@ impl Connection {
 
     fn verify_cookie(cookie: String) -> Result<(), String> {
         let mut headers = header::HeaderMap::new();
+        let cookie = cookie.replace("\n", "");
         headers.insert(
             "Cookie",
             header::HeaderValue::from_str(&cookie)
