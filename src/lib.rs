@@ -26,6 +26,11 @@ pub struct WhisperMessage {
     pub message: String,
 }
 
+pub enum MessageType {
+    ChatMessage(ChatMessage),
+    WhisperMessage(WhisperMessage),
+}
+
 impl Connection {
     pub fn new_dev(cookie: &str) -> Result<Connection, String> {
         let endpoint = "wss://chat2.strims.gg/ws";
@@ -98,6 +103,57 @@ impl Connection {
             if msg.starts_with(prefix) {
                 let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
                 return Ok(msg.to_owned());
+            }
+        }
+    }
+
+    fn msg_to_chatmessage(msg: String) -> Result<ChatMessage, String> {
+        let v: Result<Value, _> = serde_json::from_str(&msg);
+        match v {
+            Ok(v) => {
+                let message = v["data"].to_string();
+                let sender = v["nick"].to_string();
+                return Ok(ChatMessage {
+                    message: clean_received(&message).to_owned(),
+                    sender: clean_received(&sender).to_owned(),
+                });
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    fn msg_to_whispermessage(msg: String) -> Result<WhisperMessage, String> {
+        let v: Result<Value, _> = serde_json::from_str(&msg);
+        match v {
+            Ok(v) => {
+                let message = v["data"].to_string();
+                let sender = v["nick"].to_string();
+                let receiver = v["nickTarget"].to_string();
+                return Ok(WhisperMessage {
+                    message: clean_received(&message).to_owned(),
+                    sender: clean_received(&sender).to_owned(),
+                    receiver: clean_received(&receiver).to_owned(),
+                });
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+
+    pub fn read_all(&mut self) -> Result<MessageType, String> {
+        loop {
+            let msg = self.read()?;
+            let prefix = "MSG ";
+            if msg.starts_with(prefix) {
+                let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
+                let cm = MessageType::ChatMessage(Connection::msg_to_chatmessage(msg.to_owned())?);
+
+                return Ok(cm);
+            }
+            let prefix = "PRIVMSG ";
+            if msg.starts_with(prefix) {
+                let msg = msg.strip_prefix(prefix).expect("could not strip prefix");
+                let cm =
+                    MessageType::WhisperMessage(Connection::msg_to_whispermessage(msg.to_owned())?);
+                return Ok(cm);
             }
         }
     }
