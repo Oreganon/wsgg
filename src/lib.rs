@@ -26,6 +26,7 @@ pub struct WhisperMessage {
     pub message: String,
 }
 
+#[derive(Debug)]
 pub enum MessageType {
     ChatMessage(ChatMessage),
     WhisperMessage(WhisperMessage),
